@@ -1,7 +1,14 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   experimental: {
-    serverComponentsExternalPackages: ["sharp", "@prisma/client", "prisma"],
+    // Tell Next.js NOT to bundle these — load them natively at runtime
+    serverComponentsExternalPackages: [
+      "sharp",
+      "@prisma/client",
+      "prisma",
+      "cloudinary",
+      "@aws-sdk/client-s3",
+    ],
   },
   images: {
     remotePatterns: [
@@ -10,16 +17,14 @@ const nextConfig = {
       { protocol: "https", hostname: "*.s3.*.amazonaws.com" },
     ],
   },
-  // Increase body parser limit for uploads
-  api: {
-    bodyParser: {
-      sizeLimit: "20mb",
-    },
-    responseLimit: "20mb",
-  },
   webpack: (config, { isServer }) => {
     if (isServer) {
-      config.externals.push("sharp");
+      // Prevent webpack from trying to bundle optional native modules
+      config.externals.push(
+        "sharp",
+        "cloudinary",
+        "@aws-sdk/client-s3"
+      );
     }
     return config;
   },

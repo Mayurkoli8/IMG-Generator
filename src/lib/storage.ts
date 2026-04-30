@@ -1,5 +1,9 @@
 // src/lib/storage.ts
-// Abstracted storage layer - swap provider by changing STORAGE_MODE env var
+// Abstracted storage layer — swap provider by changing STORAGE_MODE env var
+//
+// KEY FIX: Uses require() with /* webpackIgnore: true */ comments instead of
+// dynamic import() — Next.js webpack statically resolves ALL import() calls
+// at build time even inside if-blocks, causing "Module not found: cloudinary".
 
 import fs from "fs";
 import path from "path";
@@ -9,13 +13,13 @@ const STORAGE_MODE = process.env.STORAGE_MODE || "local";
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
 export interface StoredFile {
-  url: string;       // Public URL
-  filePath: string;  // Internal path or cloud key
+  url: string;
+  filePath: string;
   fileName: string;
   sizeBytes: number;
 }
 
-// ─── LOCAL STORAGE ─────────────────────────────────────────────────────────
+// ─── LOCAL STORAGE ───────────────────────────────────────────────────────────
 async function saveLocal(
   buffer: Buffer,
   folder: "uploads" | "generated",
@@ -43,20 +47,20 @@ async function saveLocal(
 
 async function deleteLocal(filePath: string): Promise<void> {
   const fullPath = path.join(process.cwd(), "public", filePath);
-  if (fs.existsSync(fullPath)) {
-    fs.unlinkSync(fullPath);
-  }
+  if (fs.existsSync(fullPath)) fs.unlinkSync(fullPath);
 }
 
-// ─── CLOUDINARY ─────────────────────────────────────────────────────────────
+// ─── CLOUDINARY ──────────────────────────────────────────────────────────────
+// Using require() + webpackIgnore so Next.js bundler never touches this module
 async function saveCloudinary(
   buffer: Buffer,
   folder: string,
   _extension: string,
   _originalName?: string
 ): Promise<StoredFile> {
-  // Dynamic import to avoid errors when not using Cloudinary
-  const { v2: cloudinary } = await import("cloudinary");
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const cloudinaryPkg = require(/* webpackIgnore: true */ "cloudinary");
+  const cloudinary = cloudinaryPkg.v2;
 
   cloudinary.config({
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -64,30 +68,36 @@ async function saveCloudinary(
     api_secret: process.env.CLOUDINARY_API_SECRET,
   });
 
+  const uploadFolder = `${process.env.CLOUDINARY_FOLDER || "brandposter"}/${folder}`;
+
   return new Promise((resolve, reject) => {
-    const uploadFolder = `${process.env.CLOUDINARY_FOLDER || "brandposter"}/${folder}`;
     cloudinary.uploader
-      .upload_stream({ folder: uploadFolder, resource_type: "auto" }, (err, result) => {
-        if (err || !result) return reject(err || new Error("Cloudinary upload failed"));
-        resolve({
-          url: result.secure_url,
-          filePath: result.public_id,
-          fileName: result.original_filename || result.public_id,
-          sizeBytes: result.bytes,
-        });
-      })
+      .upload_stream(
+        { folder: uploadFolder, resource_type: "auto" },
+        (err: Error | null, result: Record<string, unknown> | undefined) => {
+          if (err || !result) return reject(err || new Error("Cloudinary upload failed"));
+          resolve({
+            url: result.secure_url as string,
+            filePath: result.public_id as string,
+            fileName: (result.original_filename as string) || (result.public_id as string),
+            sizeBytes: result.bytes as number,
+          });
+        }
+      )
       .end(buffer);
   });
 }
 
 // ─── AWS S3 ──────────────────────────────────────────────────────────────────
+// Using require() + webpackIgnore so Next.js bundler never touches this module
 async function saveS3(
   buffer: Buffer,
   folder: string,
   extension: string,
   originalName?: string
 ): Promise<StoredFile> {
-  const { S3Client, PutObjectCommand } = await import("@aws-sdk/client-s3");
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const { S3Client, PutObjectCommand } = require(/* webpackIgnore: true */ "@aws-sdk/client-s3");
 
   const client = new S3Client({
     region: process.env.AWS_REGION || "ap-south-1",
@@ -122,7 +132,7 @@ async function saveS3(
   };
 }
 
-// ─── PUBLIC API ──────────────────────────────────────────────────────────────
+// ─── PUBLIC API ───────────────────────────────────────────────────────────────
 export async function saveFile(
   buffer: Buffer,
   folder: "uploads" | "generated",
@@ -140,15 +150,9 @@ export async function saveFile(
 }
 
 export async function deleteFile(filePath: string): Promise<void> {
-  if (STORAGE_MODE === "local") {
-    await deleteLocal(filePath);
-  }
-  // Cloud deletions can be added similarly
+  if (STORAGE_MODE === "local") await deleteLocal(filePath);
 }
 
-/**
- * Reads a local file by its public path (for image overlay pipeline)
- */
 export function readLocalFile(publicPath: string): Buffer | null {
   try {
     const fullPath = path.join(process.cwd(), "public", publicPath);
