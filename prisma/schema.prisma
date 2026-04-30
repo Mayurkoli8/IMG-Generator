@@ -1,0 +1,126 @@
+// prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Brand {
+  id            String   @id @default(cuid())
+  name          String
+  slug          String   @unique
+  tagline       String?
+  website       String?
+  phone         String?
+  email         String?
+  address       String?
+  instagramHandle String?
+  facebookHandle  String?
+  primaryColor  String   @default("#1a1a2e")
+  secondaryColor String  @default("#e8c07d")
+  accentColor   String   @default("#ffffff")
+  fontPrimary   String   @default("Playfair Display")
+  fontSecondary String   @default("Montserrat")
+  designRules   String?  // JSON string of design guidelines
+  logoUrl       String?
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  assets      BrandAsset[]
+  generations GenerationJob[]
+  webhookReqs WebhookRequest[]
+
+  @@map("brands")
+}
+
+model BrandAsset {
+  id          String   @id @default(cuid())
+  brandId     String
+  type        String   // logo | sample_poster | property_photo | reference | brochure | document
+  name        String
+  url         String
+  mimeType    String?
+  sizeBytes   Int?
+  description String?
+  tags        String?  // comma-separated
+  createdAt   DateTime @default(now())
+
+  brand Brand @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  @@map("brand_assets")
+}
+
+model CampaignTemplate {
+  id           String   @id @default(cuid())
+  campaignType String   @unique // new_year | festival | property_launch | etc.
+  label        String
+  promptPrefix String   // base prompt template
+  styleHints   String   // JSON string of style directives
+  keywords     String   // comma-separated style keywords
+  examplePrompt String?
+  active       Boolean  @default(true)
+  sortOrder    Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("campaign_templates")
+}
+
+model GenerationJob {
+  id              String   @id @default(cuid())
+  brandId         String?
+  requestId       String?  @unique  // for idempotency
+  campaignType    String?
+  userPrompt      String
+  enhancedPrompt  String?
+  aspectRatio     String   @default("1:1")
+  outputFormat    String   @default("png")
+  status          String   @default("pending") // pending | processing | done | failed
+  imageUrl        String?
+  thumbnailUrl    String?
+  imageWidth      Int?
+  imageHeight     Int?
+  fileSizeBytes   Int?
+  errorMessage    String?
+  metadata        String?  // JSON string
+  source          String   @default("manual") // manual | webhook
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  brand Brand? @relation(fields: [brandId], references: [id])
+
+  @@map("generation_jobs")
+}
+
+model WebhookRequest {
+  id          String   @id @default(cuid())
+  brandId     String?
+  requestId   String?
+  payload     String   // raw JSON payload
+  status      String   @default("received") // received | processing | done | failed
+  responsePayload String?
+  generationId String?
+  ipAddress   String?
+  createdAt   DateTime @default(now())
+
+  brand Brand? @relation(fields: [brandId], references: [id])
+
+  @@map("webhook_requests")
+}
+
+model PromptHistory {
+  id           String   @id @default(cuid())
+  brandId      String?
+  campaignType String?
+  userPrompt   String
+  enhanced     String?
+  usedCount    Int      @default(1)
+  lastUsedAt   DateTime @default(now())
+  createdAt    DateTime @default(now())
+
+  @@map("prompt_history")
+}

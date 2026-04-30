@@ -1,0 +1,137 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --radius: 0.5rem;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-slate-950 text-slate-100;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(148, 163, 184, 0.2);
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(148, 163, 184, 0.4);
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .glass {
+    @apply bg-white/5 backdrop-blur-sm border border-white/10;
+  }
+
+  .glass-dark {
+    @apply bg-black/30 backdrop-blur-sm border border-white/[0.06];
+  }
+
+  .gradient-gold {
+    background: linear-gradient(135deg, #e8c07d 0%, #d4851f 50%, #b86a15 100%);
+  }
+
+  .text-gradient-gold {
+    background: linear-gradient(135deg, #f5dab0 0%, #e8c07d 50%, #d4851f 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .shine {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .shine::after {
+    content: "";
+    position: absolute;
+    top: -50%;
+    left: -60%;
+    width: 30%;
+    height: 200%;
+    background: linear-gradient(
+      to right,
+      transparent 0%,
+      rgba(255, 255, 255, 0.08) 50%,
+      transparent 100%
+    );
+    transform: skewX(-15deg);
+    transition: left 0.6s ease;
+  }
+
+  .shine:hover::after {
+    left: 130%;
+  }
+}
+
+/* Grid background pattern */
+.bg-grid {
+  background-image: linear-gradient(
+      rgba(255, 255, 255, 0.025) 1px,
+      transparent 1px
+    ),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+/* Loading shimmer */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.05) 25%,
+    rgba(255, 255, 255, 0.1) 50%,
+    rgba(255, 255, 255, 0.05) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 4px;
+}
+
+/* Pulse ring animation */
+@keyframes ring-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(212, 133, 31, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(212, 133, 31, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(212, 133, 31, 0);
+  }
+}
+
+.ring-pulse {
+  animation: ring-pulse 2s infinite;
+}

@@ -1,0 +1,34 @@
+# render.yaml — Render deployment configuration
+# https://render.com/docs/blueprint-spec
+
+services:
+  - type: web
+    name: brandposter-ai
+    env: node
+    plan: starter
+    buildCommand: "npm install && npm run build"
+    startCommand: "npm run start"
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        value: file:/data/production.db
+      - key: OPENAI_API_KEY
+        sync: false   # Set manually in Render dashboard
+      - key: OPENAI_IMAGE_MODEL
+        value: gpt-image-1
+      - key: NEXT_PUBLIC_APP_URL
+        sync: false   # Set to your Render URL
+      - key: STORAGE_MODE
+        value: local
+      - key: WEBHOOK_SECRET
+        generateValue: true
+      - key: RATE_LIMIT_RPM
+        value: "10"
+      - key: MAX_UPLOAD_MB
+        value: "20"
+    disk:
+      name: brandposter-data
+      mountPath: /data
+      sizeGB: 5
